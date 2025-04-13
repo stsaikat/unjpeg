@@ -13,7 +13,7 @@ os.makedirs(save_dir, exist_ok=True)
 
 # Model, dataset, etc.
 model = UNet(in_channels=4, out_channels=3).to(device)
-model.load_state_dict(torch.load("saved_models/v4_model_latest_0.0007.pth", map_location=device))
+model.load_state_dict(torch.load("saved_models/v7_model_latest_0.0007_q30.pth", map_location=device))
 dataset = CompressedImageDataset("dataset/train")
 dataloader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=4)
 criterion = nn.MSELoss()

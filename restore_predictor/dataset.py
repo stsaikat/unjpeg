@@ -34,8 +34,8 @@ class CompressedImageDataset(Dataset):
         # Crop original (this will be the mask)
         target = T.functional.crop(original, i, j, h, w)
 
-        # quality_list = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-        quality_list = [10]
+        quality_list = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        # quality_list = [30]
         quality = random.choice(quality_list)
         # Compress cropped image to JPEG with quality=10 (simulate compression artifacts)
         buffer = BytesIO()

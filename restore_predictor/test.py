@@ -11,7 +11,7 @@ from model import UNet  # Ensure your UNet is imported properly
 
 # -------- Config -------- #
 image_dir = "dataset/test"
-model_path = "saved_models/v4_model_latest_0.0007.pth"
+model_path = "saved_models/v8_model_latest_0.0005_qr.pth"
 save_vis_dir = "test_results"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 crop_size = 128
@@ -55,7 +55,7 @@ for img_name in os.listdir(image_dir):
     original_crop = image.crop((j, i, j + crop_size, i + crop_size))
 
     quality_list = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    quality_list = [10]
+    # quality_list = [30]
     quality = random.choice(quality_list)
     # Compress the crop (JPEG quality=10)
     buffer = BytesIO()
