@@ -3,6 +3,7 @@ from PIL import Image
 from torchvision import transforms
 from torch.utils.data import Dataset
 import torch
+import torchvision.transforms as T
 
 class JPEGCompressionDataset(Dataset):
     def __init__(self, image_dir, transform=None):
@@ -17,6 +18,7 @@ class JPEGCompressionDataset(Dataset):
             transforms.Resize((128, 128)),
             transforms.ToTensor()
         ])
+        self.crop_size = (128, 128)
 
     def __len__(self):
         return len(self.image_files)
@@ -26,6 +28,16 @@ class JPEGCompressionDataset(Dataset):
         img_path = os.path.join(self.image_dir, img_name)
 
         image = Image.open(img_path).convert("RGB")
+        
+        # Random crop params
+        i, j, h, w = T.RandomCrop.get_params(image, output_size=self.crop_size)
+        i = int(i/self.crop_size[0]) * self.crop_size[0]
+        j = int(j/self.crop_size[1]) * self.crop_size[1]
+
+        # print(f"Image: {img_name}, Crop: ({i}, {j}, {h}, {w})")
+        # Crop original (this will be the mask)
+        image = T.functional.crop(image, i, j, h, w)
+        
         image = self.transform(image)
 
         # Extract quality value from filename (e.g., "img_q30.jpg" → 30)

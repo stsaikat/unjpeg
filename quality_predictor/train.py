@@ -9,15 +9,16 @@ from model import JPEGCompressionPredictor
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = JPEGCompressionPredictor().to(device)
-model.load_state_dict(torch.load("saved_models/v3_model_epoch_1000_7.54.pth", map_location=device))
+model.load_state_dict(torch.load("saved_models/v5_model_epoch_300_29.81.pth", map_location=device))
 dataset = JPEGCompressionDataset("dataset/train")
-dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=32, shuffle=True,  num_workers=8)
 
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
 # Training loop
 num_epochs = 1000
+last_best_saved_avg_loss = 1000.0
 
 for epoch in range(num_epochs):
     model.train()
@@ -39,5 +40,6 @@ for epoch in range(num_epochs):
     avg_loss = epoch_loss / len(dataloader)
     print(f"Epoch {epoch+1}, Loss: {avg_loss:.4f}")
     
-    if (epoch+1) % 100 == 0:
-        torch.save(model.state_dict(), f"saved_models/model_epoch_{epoch+1}_{avg_loss:.2f}.pth")
+    if avg_loss < last_best_saved_avg_loss:
+        last_best_saved_avg_loss = avg_loss
+        torch.save(model.state_dict(), f"checkpoints/model_epoch_{epoch+1}_{avg_loss:.4f}.pth")

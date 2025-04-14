@@ -54,6 +54,7 @@ class UNet(nn.Module):
         self.out_conv = nn.Conv2d(64, out_channels, kernel_size=1)
 
     def forward(self, x):
+        hx = x
         # Encoder
         x1 = self.down1(x)
         x2 = self.down2(self.pool1(x1))
@@ -76,4 +77,4 @@ class UNet(nn.Module):
         x = self.up1(x)
         x = self.dec1(torch.cat([x, x1], dim=1))
 
-        return self.out_conv(x)
+        return self.out_conv(x) + hx[:, :3, :, :]

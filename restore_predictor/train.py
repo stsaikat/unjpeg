@@ -13,7 +13,7 @@ os.makedirs(save_dir, exist_ok=True)
 
 # Model, dataset, etc.
 model = UNet(in_channels=4, out_channels=3).to(device)
-model.load_state_dict(torch.load("saved_models/v7_model_latest_0.0007_q30.pth", map_location=device))
+model.load_state_dict(torch.load("saved_models/v8_model_latest_0.0005_qr.pth", map_location=device))
 dataset = CompressedImageDataset("dataset/train")
 dataloader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=4)
 criterion = nn.MSELoss()
@@ -21,6 +21,7 @@ optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
 # Training
 epochs = 200
+last_best_saved_avg_loss = float('inf')
 for epoch in range(epochs):
     model.train()
     running_loss = 0.0
@@ -43,8 +44,8 @@ for epoch in range(epochs):
     avg_loss = running_loss / len(dataloader)
     print(f"✅ Epoch [{epoch+1}/{epochs}] Avg Loss: {avg_loss:.4f}")
 
-    # Save every 3 epochs
-    if (epoch + 1) % 5 == 0:
+    if avg_loss < last_best_saved_avg_loss:
+        last_best_saved_avg_loss = avg_loss
         model_path = os.path.join(save_dir, f"model_epoch_{epoch+1}_{avg_loss:.4f}.pth")
         torch.save(model.state_dict(), model_path)
         print(f"💾 Model saved at: {model_path}")

@@ -10,10 +10,13 @@ from math import log10
 from restore_predictor.model import UNet
 from quality_predictor.model import JPEGCompressionPredictor
 import shutil
+import numpy as np
+import os
+import random
 
 # -------- Config -------- #
-PREDICTOR_PATH = "quality_predictor/model.pth"
-RESTORE_MODEL_PATH = "restore_predictor/saved_models/v8_model_latest_0.0005_qr.pth"
+PREDICTOR_PATH = "quality_predictor/saved_models/v6_model_epoch_981_14.5304.pth"
+RESTORE_MODEL_PATH = "restore_predictor/saved_models/v9_model_epoch_169_0.0005.pth"
 OUTPUT_DIR = "output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -44,9 +47,14 @@ restorer.eval()
 # -------- Quality Prediction -------- #
 def predict_jpeg_quality(image_path):
     image = Image.open(image_path).convert("RGB")
-    image = image.resize((128, 128), resample=Image.Resampling.NEAREST)
-    image.save("tmp.jpg", format="JPEG", quality=10)  # Save as JPEG to simulate compression
-    image = Image.open("tmp.jpg").convert("RGB")
+    # image = image.resize((128, 128), resample=Image.Resampling.NEAREST)
+    i, j, h, w = T.RandomCrop.get_params(image, output_size=(128, 128))
+    i = int(i/128) * 128
+    j = int(j/128) * 128
+    image = T.functional.crop(image, i, j, h, w)
+    
+    # image.save("tmp.jpg", format="JPEG", quality=10)  # Save as JPEG to simulate compression
+    # image = Image.open("tmp.jpg").convert("RGB")
     image_tensor = transform_predictor(image).unsqueeze(0).to(DEVICE)
     with torch.no_grad():
         predicted_quality_float = predictor(image_tensor).item()
@@ -67,10 +75,10 @@ def calculate_psnr_pil(img1_pil, img2_pil):
 
 
 # -------- Restoration Pipeline -------- #
-def restore_image(image_path):
+def restore_image(image_path, png_img_path):
     # Load and predict quality
     predicted_quality, precise = predict_jpeg_quality(image_path)
-    print(f"Predicted JPEG Quality: {predicted_quality} (Precise: {precise:.2f})")
+    # print(f"Predicted JPEG Quality: {predicted_quality} (Precise: {precise:.2f})")
 
     image = Image.open(image_path).convert("RGB")
     # image.save(f"{OUTPUT_DIR}/original.jpg", format="JPEG", quality=predicted_quality)
@@ -103,31 +111,73 @@ def restore_image(image_path):
     output_image.save(f"{OUTPUT_DIR}/restored.png")
 
     # -------- PSNR Metrics -------- #
-    original_img = Image.open('0001.png').convert("RGB")
+    original_img = Image.open(png_img_path).convert("RGB")
     jpeg_img = Image.open(image_path).convert("RGB")
     restored_img = Image.open(f"{OUTPUT_DIR}/restored.png").convert('RGB')
+    # print(original_img.size, jpeg_img.size, restored_img.size)
 
     psnr_input = calculate_psnr_pil(original_img, jpeg_img)
     psnr_output = calculate_psnr_pil(original_img, restored_img)
 
-    print(f"Input PSNR: {psnr_input:.2f} dB")
-    print(f"Restored PSNR: {psnr_output:.2f} dB")
-    if psnr_output < psnr_input:
-        print("⚠️  Warning: Restored PSNR is worse than JPEG input PSNR")
+    # print(f"Input PSNR: {psnr_input:.2f} dB")
+    # print(f"Restored PSNR: {psnr_output:.2f} dB")
+    # if psnr_output < psnr_input:
+    #     print("⚠️  Warning: Restored PSNR is worse than JPEG input PSNR")
+    # print(f"PSNR Improvement: {psnr_output - psnr_input:.2f} dB")
+    return psnr_input, psnr_output, predicted_quality
+
+from PIL import Image
+
+def crop_to_multiple(image, multiple=1024):
+    width, height = image.size
+    new_width = width - (width % multiple)
+    new_height = height - (height % multiple)
+
+    left = (width - new_width) // 2
+    top = (height - new_height) // 2
+    right = left + new_width
+    bottom = top + new_height
+
+    return image.crop((left, top, right, bottom))
 
 
 # -------- Main Entry -------- #
 if __name__ == "__main__":
-    png_img_path = "0001.png"
-    input_img_path = "test.jpg"
-    img = Image.open(png_img_path).convert("RGB")
-    img.save(input_img_path, format="JPEG", quality=10)
-    
-    # predicted_quality, precise = predict_jpeg_quality(input_img_path)
-    # print(f"Predicted JPEG Quality: {predicted_quality} (Precise: {precise:.2f})")
-    restore_image(input_img_path)
-    
-    # for _ in range(10):
-    #     shutil.copy("output/restored.png", f"original.jpg")
-    #     img_path = "original.jpg"
-    #     restore_image(img_path)
+    file_list = os.listdir("restore_predictor/dataset/test")
+    # random.shuffle(file_list)
+    # file_list = file_list[:50]
+    total_improvement = 0
+    count = 0
+    for file in file_list:
+        try:
+            quality_list = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+            # quality_list = [30]
+            quality = random.choice(quality_list)
+            # for i in range(10, 91, 10):
+            png_img_path = os.path.join("quality_predictor/dataset/images", file)
+            # png_img_path = "test.png"
+            img = Image.open(png_img_path).convert("RGB")
+            img = crop_to_multiple(img, 1024)
+            img.save(png_img_path)
+            
+            input_img_path = "test.jpg"
+            img = Image.open(png_img_path).convert("RGB")
+            img.save(input_img_path, format="JPEG", quality=quality)
+            # print(f"Input Image Quality: {quality}")
+            
+            # for _ in range(10):
+            #     predicted_quality, precise = predict_jpeg_quality(input_img_path)
+            #     print(f"Predicted JPEG Quality: {predicted_quality} (Precise: {precise:.2f})")
+            psnr_input, psnr_output, predicted_quality =  restore_image(input_img_path, png_img_path)
+            print(f"Image quality: {quality}, Predicted: {predicted_quality}, Improve : {psnr_output - psnr_input} dB, PSNR input: {psnr_input:.2f}, PSNR output: {psnr_output:.2f}")
+            total_improvement += psnr_output - psnr_input
+            count += 1
+        except Exception as e:
+            print(f"Error processing {file}: {e}")
+            continue
+    print(f"Average PSNR Improvement: {total_improvement/count:.2f} dB")
+        
+        
+        # for _ in range(10):
+        #     shutil.copy("output/restored.png", input_img_path)
+        #     restore_image(input_img_path)

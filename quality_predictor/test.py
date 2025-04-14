@@ -6,7 +6,7 @@ from model import JPEGCompressionPredictor  # Update path if needed
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 # ---------- CONFIG ----------
-MODEL_PATH = "model.pth"
+MODEL_PATH = "saved_models/v6_model_epoch_981_14.5304.pth"
 TEST_DIR = "dataset/test"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,6 +30,13 @@ with torch.no_grad():
         if filename.endswith(".jpg"):
             path = os.path.join(TEST_DIR, filename)
             image = Image.open(path).convert("RGB")
+            
+            # Random crop params
+            i, j, h, w = transforms.RandomCrop.get_params(image, output_size=(128, 128))
+            i = int(i/128) * 128
+            j = int(j/128) * 128
+            image = transforms.functional.crop(image, i, j, h, w)
+            
             image_tensor = transform(image).unsqueeze(0).to(DEVICE)
 
             predicted_quality_float = model(image_tensor).item()

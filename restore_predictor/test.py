@@ -11,7 +11,7 @@ from model import UNet  # Ensure your UNet is imported properly
 
 # -------- Config -------- #
 image_dir = "dataset/test"
-model_path = "saved_models/v8_model_latest_0.0005_qr.pth"
+model_path = "saved_models/v9_model_epoch_169_0.0005.pth"
 save_vis_dir = "test_results"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 crop_size = 128
