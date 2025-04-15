@@ -130,9 +130,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Thanks to the open-source community for the tools and libraries used in this project
 - Special thanks to the researchers whose work inspired this implementation
-
-## Contact
-
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter) - email@example.com
-
-Project Link: [https://github.com/yourusername/jpeg-restoration](https://github.com/yourusername/jpeg-restoration)
